@@ -45,7 +45,9 @@
 	    (member test-char ',series)))))))
 
 
-(defun %eval-paren-closure (closure) #\))
+(defun %eval-paren-closure (closure)
+  (eval
+   `#'(lambda ())))
 
 (defun %eval-curly-closure (closure) #\})
 
