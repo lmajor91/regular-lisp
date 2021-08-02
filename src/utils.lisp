@@ -1,6 +1,8 @@
 ;;;; this file contains all of the functions which are used in the main regular expression file
 
 ;;;; this deals exclusively with strings, not streams
+;; add step for turning streams, vectors, etc into strings?
+;; add implementation for those types?
 
 (defconstant *special-chars* '(#\( #\) #\[ #\] #\{ #\}))
 
