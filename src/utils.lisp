@@ -58,4 +58,17 @@
 
 ;;;;; EVAL FUNCTIONS ;;;;;
 
+;; This is just a nice wrapper for a junction to pass closures into for them to get parsed correctly
+;; - this function accepts a pure, complete closure e.g., [abc], (test), {3,}
+(defun eval-closure (closure &key
+			       (sq-brac #'%eval-square-closure)
+			       (pr-brac #'%eval-paren-closure)
+			       (cr-brac #'%eval-curly-closure))
+  (eval
+   `(case (char ,closure 0)
+      (#\( (funcall ,pr-brac ,closure))
+      (#\[ (funcall ,sq-brac ,closure))
+      (#\{ (funcall ,cr-brac ,closure))
+      (t nil))))
+
 ;;;;; SIMPLE FUNCTIONS ;;;;;
