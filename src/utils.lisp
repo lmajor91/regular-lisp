@@ -9,11 +9,22 @@
 ;; a case to escape functionality of the next character appending a \
 
 ;;;;; HIGH ORDER FUNCTIONS ;;;;;
+
+;; collecting the chars
+(defmacro reg-match (pattern string)
   `(let ((matcher (eval-pattern ,pattern)))
-     (loop for string in ,strings
-	   ;; debugging purposes to see what the expression looks like
-	   ;; do (format t "~S~%" `(,@sexpr ,string))
-	   collect (funcall matcher string))))
+     (loop for char across ,string
+	   ;; extending the list in case there being no char-matcher pair
+	   for list-extension = matcher then (cdr list-extension)
+	   ;; reading from the extended list
+	   for match = (or (car list-extension) nil)
+	   ;; will terminate when (progn) returns nil
+	   always (progn
+		    (format t "char: ~A expr: ~S~%" char match)
+		    ;; if match is a function call it, otherwise compare the chars
+		    (if (functionp match)
+			(funcall match char)
+			(char= match char))))))
 
 ;;;;; % OR SUB-FUNCTIONS ;;;;;
 
