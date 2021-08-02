@@ -73,6 +73,12 @@
 
 ;;;;; SIMPLE FUNCTIONS ;;;;;
 
+;; This function is a shorthand to determine whether the character entered is to be treated as a special char within regex
+(defun special-char? (char &key (chars *special-chars*))
+  (not
+   (null
+    (member char chars))))
+
 (defun %get-closing-closure (char)
   (case char
     (#\( #\))
