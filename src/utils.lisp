@@ -51,6 +51,16 @@
 
 (defun %eval-pipe-closure (closure) #\|)
 
+(defun %parse-closure (pattern starting-index terminator)
+  "This parses a regex closure in a string starting at *starting-index* and ending at the first instance of *terminator*"
+  (let ((ending-index (position terminator pattern
+				:start starting-index
+				:from-end nil
+				:test #'char-equal)))
+    (when (not (null ending-index))
+      (subseq pattern starting-index
+	      (+ 1 ending-index)))))
+
 ;;;;; EVAL FUNCTIONS ;;;;;
 
 ;; This is just a nice wrapper for a junction to pass closures into for them to get parsed correctly
