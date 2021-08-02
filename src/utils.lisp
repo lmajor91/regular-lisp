@@ -63,6 +63,21 @@
 
 ;;;;; EVAL FUNCTIONS ;;;;;
 
+;; this takes a pattern and forms a function to parse a string, basically a lexer
+(defun eval-pattern (pattern)
+  ;; char-at is a shorthand
+  (flet ((char-at (index) (aref pattern index)))
+    (loop for i from 0 to (- (length pattern) 1)
+	  if (special-char? (char-at i))
+	    collect (eval-closure
+		     (%parse-closure pattern i
+				     (%get-closing-closure (char-at i))))
+	    and do (setf i (position (%get-closing-closure (char-at i))
+				     pattern
+				     :start i))
+	  else
+	    collect (char-at i))))
+
 ;; This is just a nice wrapper for a junction to pass closures into for them to get parsed correctly
 ;; - this function accepts a pure, complete closure e.g., [abc], (test), {3,}
 (defun eval-closure (closure &key
