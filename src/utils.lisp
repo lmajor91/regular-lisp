@@ -17,24 +17,8 @@
 
 ;;;;; % OR SUB-FUNCTIONS ;;;;;
 
-;; make implementation for special characters
-
-;; this will return a function to produce a true or false for the regular expression
-;; things like [A-Z] will return a lambda that returns a boolean
-(defmacro eval-closure (closure &key
-				  (sq-brac #'%eval-square-closure)
-				  (pr-brac #'%eval-paren-closure)
-				  (cr-brac #'%eval-curly-closure))
-  `(case (char ,closure 0)
-     (#\( (funcall ,pr-brac ,closure))
-     (#\[ (funcall ,sq-brac ,closure))
-     (#\{ (funcall ,cr-brac ,closure))
-     (t nil)))
-
-;; this function assumes that it has a correct closure, but it will still assert
-;; returns a function which produces a boolean
-
-;; add clause for "-"
+;; this function produces a function which takes a char as a param and returns a boolean
+;; - a fancy way of determining whether a char belongs in a set (literally all a [] closure does)
 (defun %eval-square-closure (closure)
   (eval
    (let ((series
