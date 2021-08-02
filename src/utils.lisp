@@ -1,6 +1,11 @@
 ;;;; this file contains all of the functions which are used in the main regular expression file
 
-;;;; this deals exclusively with strings, not streams
+;;;; literally anything with eval in the name should not be interacted with directly,
+;;;; need to sort this file out better, maybe a nested package would do some good... "lreg-sys"?
+
+;;;; this deals exclusively with strings, not streams (BUT THIS IS BROKEN!!! :^) )
+
+;;;; add some constants
 
 ;;;; gotta implement
 ;; ^ and $
