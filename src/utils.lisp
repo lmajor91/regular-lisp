@@ -2,6 +2,8 @@
 
 ;;;; this deals exclusively with strings, not streams
 
+(defconstant *special-chars* '(#\( #\) #\[ #\] #\{ #\}))
+
 ;;;; gotta implement
 ;; ^ and $
 ;; a case to escape functionality of the next character appending a \
