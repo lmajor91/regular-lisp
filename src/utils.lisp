@@ -72,3 +72,10 @@
       (t nil))))
 
 ;;;;; SIMPLE FUNCTIONS ;;;;;
+
+(defun %get-closing-closure (char)
+  (case char
+    (#\( #\))
+    (#\[ #\])
+    (#\{ #\})
+    (t nil)))
