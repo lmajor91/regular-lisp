@@ -2,5 +2,5 @@
 
 (in-package "COMMON-LISP-USER")
 
-(defpackage :lreg
+(defpackage :re
     (:use :common-lisp :sb-ext))

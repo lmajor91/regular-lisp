@@ -1,111 +1,93 @@
-;;;; this file contains all of the functions which are used in the main regular expression file
+;;;; this function will house all of the utility functions, usually smaller sized functions like macros
+;;;;    and such will live here
 
-;;;; this deals exclusively with strings, not streams
-;; add step for turning streams, vectors, etc into strings?
-;; add implementation for those types?
+;;; steps of processing
+;; tokenizer
+;; AST
+;; evaluator	
 
-(defconstant *special-chars* '(#\( #\) #\[ #\] #\{ #\}))
+;; need a token class
 
-;;;; gotta implement
-;; ^ and $
-;; a case to escape functionality of the next character appending a \
+(defun token-p (object)
+  (eql (type-of object) 'token))
 
-;;;;; HIGH ORDER FUNCTIONS ;;;;;
+(defmethod left-p ((token token))
+  "a predicate which returns a boolean if the token has a left child"
+  (not (null (token-left token))))
 
-;; collecting the chars
-(defmacro reg-match (pattern string)
-  `(let ((matcher (eval-pattern ,pattern)))
-     (loop for char across ,string
-	   ;; extending the list in case there being no char-matcher pair
-	   for list-extension = matcher then (cdr list-extension)
-	   ;; reading from the extended list
-	   for match = (or (car list-extension) nil)
-	   ;; will terminate when (progn) returns nil
-	   always (progn
-		    (format t "char: ~A expr: ~S~%" char match)
-		    ;; if match is a function call it, otherwise compare the chars
-		    (if (functionp match)
-			(funcall match char)
-			(char= match char))))))
+(defmethod right-p ((token token))
+  "a predicate which returns a boolean if the token has a right child"
+  (not (null (token-right token))))
 
-;;;;; % OR SUB-FUNCTIONS ;;;;;
+(defmethod children-p ((token token))
+  "this predicate returns true if the token has at least 1 child"
+  (>
+   (length
+    (get-children token)))
+  0)
 
-;; this function produces a function which takes a char as a param and returns a boolean
-;; - a fancy way of determining whether a char belongs in a set (literally all a [] closure does)
-(defun %eval-square-closure (closure)
-  (eval
-   (let ((series
-	   (loop for char across closure
-		 when (not
-		       (or
-			(char= char #\[)
-			(char= char #\])))
-		   collect char)))
-     `#'(lambda (test-char)
-	  (not
-	   (null
-	    (member test-char ',series)))))))
+(defclass token ()
+  ((character :accessor token-char
+	      :initarg :char
+	      :documentation "the token's symbol")
+   (left :accessor token-left
+	 :initarg :left
+	 :initform nil
+	 :allocation :instance
+	 :documentation "the token's left child")
+   (right :accessor token-right
+	  :initarg :right
+	  :initform nil
+	  :allocation :instance
+	  :documentation "the token's right child")))
 
+(defmethod get-children ((token token))
+  "this method returns the children of the token,
+this function can return a list of nil values"
+  (remove nil
+	  (list
+	   (token-left token)
+	   (token-right token))))
 
-(defun %eval-paren-closure (closure)
-  (eval
-   `#'(lambda ())))
+(defmethod print-object ((tok token) stream)
+  "this function nicely prints a token out to the user"
+  (print-unreadable-object (tok stream :type t)
+    (with-accessors ((char token-char)
+		     (children token-children))
+	tok
+      (let ((children (length (get-children tok))))
+	(format stream "~s, ~d ~[children~;child~:;children~]"
+		char
+		children
+		children)))))
 
-(defun %eval-curly-closure (closure) #\})
+;;; AST class
 
-(defun %eval-pipe-closure (closure) #\|)
+(defmethod tokenize ((string sequence))
+  "this method turns a string into an AST"
+  (let ((context nil) (head))
+    (loop for char across string
+	  do (if (null context)
+		 (progn
+		   (setf context (make-instance
+				  'token :char char))
+		   (setq head context))
+		 (progn
+		   (setf (token-right context)
+			 (make-instance 'token
+					:char char))
+		   (setq context (token-right context)))))
+    head))
 
-(defun %parse-closure (pattern starting-index terminator)
-  "This parses a regex closure in a string starting at *starting-index* and ending at the first instance of *terminator*"
-  (let ((ending-index (position terminator pattern
-				:start starting-index
-				:from-end nil
-				:test #'char-equal)))
-    (when (not (null ending-index))
-      (subseq pattern starting-index
-	      (+ 1 ending-index)))))
+(defmethod walk-token-tree ((token token))
+  (progn
+    (if (left-p token)
+	(walk-token-tree (token-left token)))
+    (format t "~a~[->~;~:;~]"
+	    (token-char token)
+	    (if (right-p token) 0 1))
+    (if (right-p token)
+	(walk-token-tree (token-right token))))
+  t) ; returning t as a default return value
 
-;;;;; EVAL FUNCTIONS ;;;;;
-
-;; this takes a pattern and forms a function to parse a string, basically a lexer
-(defun eval-pattern (pattern)
-  ;; char-at is a shorthand
-  (flet ((char-at (index) (aref pattern index)))
-    (loop for i from 0 to (- (length pattern) 1)
-	  if (special-char? (char-at i))
-	    collect (eval-closure
-		     (%parse-closure pattern i
-				     (%get-closing-closure (char-at i))))
-	    and do (setf i (position (%get-closing-closure (char-at i))
-				     pattern
-				     :start i))
-	  else
-	    collect (char-at i))))
-
-;; This is just a nice wrapper for a junction to pass closures into for them to get parsed correctly
-;; - this function accepts a pure, complete closure e.g., [abc], (test), {3,}
-(defun eval-closure (closure &key
-			       (sq-brac #'%eval-square-closure)
-			       (pr-brac #'%eval-paren-closure)
-			       (cr-brac #'%eval-curly-closure))
-  (eval
-   `(case (char ,closure 0)
-      (#\( (funcall ,pr-brac ,closure))
-      (#\[ (funcall ,sq-brac ,closure))
-      (#\{ (funcall ,cr-brac ,closure))
-      (t nil))))
-
-;;;;; SIMPLE FUNCTIONS ;;;;;
-
-;; This function is a shorthand to determine whether the character entered is to be treated as a special char within regex
-(defun special-char? (char &key (chars *special-chars*))
-  (not
-   (null
-    (member char chars))))
-
-(defun %get-closing-closure (char)
-  (case char
-    (#\( #\))
-    (#\[ #\])
-    (#\{ #\})
-    (t nil)))
+;;; evaluater class

@@ -4,7 +4,7 @@
 
 (defsystem #:lreg
   :description "My own implementation of regular expression system"
-  :version "0.0.1"
+  :version "0.2.0"
   :author "bruhulance"
   :licence "MIT"
   :serial t
