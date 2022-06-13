@@ -4,9 +4,9 @@
 ;;; steps of processing
 ;; tokenizer
 ;; AST
-;; evaluator	
+;; evaluator
 
-;; need a token class
+;;; token class predicates
 
 (defun token-p (object)
   (eql (type-of object) 'token))
@@ -26,6 +26,8 @@
     (get-children token)))
   0)
 
+;;; the actual token class
+
 (defclass token ()
   ((character :accessor token-char
 	      :initarg :char
@@ -41,10 +43,12 @@
 	  :allocation :instance
 	  :documentation "the token's right child")))
 
+;;; token class methods
+
 (defmethod get-children ((token token))
   "this method returns the children of the token,
 this function can return a list of nil values"
-  (remove nil
+  (remove nil ; the default form of the children is `nil`
 	  (list
 	   (token-left token)
 	   (token-right token))))
@@ -61,9 +65,20 @@ this function can return a list of nil values"
 		children
 		children)))))
 
-;;; AST class
+(defgeneric eval-state (token letter)
+  (:documentation "returns the evaluated state of a token, usually if the letter matches the node or not"))
 
-(defmethod tokenize ((string sequence))
+(defmethod eval-state ((token token) (letter character))
+  "this method is for matching a character"
+  (string= (token-char token) letter))
+
+(defmethod eval-state ((token token) (letter string))
+  "this method is for matching a string"
+  (string= (token-char token) letter))
+
+;;;; AST class
+
+(defmethod tokenize ((string string))
   "this method turns a string into an AST"
   (let ((context nil) (head))
     (loop for char across string
@@ -80,6 +95,7 @@ this function can return a list of nil values"
     head))
 
 (defmethod walk-token-tree ((token token))
+  "this method prints out the token tree in a nice format"
   (progn
     (if (left-p token)
 	(walk-token-tree (token-left token)))
@@ -90,4 +106,20 @@ this function can return a list of nil values"
 	(walk-token-tree (token-right token))))
   t) ; returning t as a default return value
 
-;;; evaluater class
+;;;; evaluater class
+
+(defmethod match ((head token) (pattern string))
+  "this method matches a compiled regular expression to a string"
+  (let ((context head)) ; this is to walk the tree
+    (loop for char across pattern
+	  do (if (eval-state context char) ; if the character matches
+		 (setf context ; if match, walk tree
+		       (if (right-p context)
+			   (token-right context)
+			   t))
+		 (setf context nil)) ; if no match, exit
+	  while (token-p context)) ; if token, continue, if not break
+    ;;; this is a hack to test if the regular expression matched or not, if the pattern is a substring of the compiled expression it will return a token object
+    (if (token-p context)
+	nil
+	context)))
